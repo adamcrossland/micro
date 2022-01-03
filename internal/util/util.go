@@ -3,6 +3,11 @@ package util
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -492,4 +497,59 @@ func Unzip(src, dest string) error {
 	}
 
 	return nil
+}
+
+func Encrypt(text, key string) (string, error) {
+	if len(key) > 0 {
+		keyHash := sha256.Sum256([]byte(key))
+		c, err := aes.NewCipher(keyHash[:])
+		if err != nil {
+			return fmt.Sprintf("creating cipher err: %v", err), err
+		}
+		gcm, err := cipher.NewGCM(c)
+		if err != nil {
+			return fmt.Sprintf("creating gcm err: %v", err), err
+		}
+		nonce := make([]byte, gcm.NonceSize())
+		// populates our nonce with a cryptographically secure
+		// random sequence
+		if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+			fmt.Println(err)
+		}
+		if err != nil {
+			return fmt.Sprintf("creating nonce err: %v", err), err
+		}
+
+		// return hex string
+		return hex.EncodeToString(gcm.Seal(nonce, nonce, []byte(text), nil)), nil
+	} else {
+		return "encryption key cannot be empty", fmt.Errorf("encryption key cannot be empty")
+	}
+}
+
+func Decrypt(text, key string) (string, error) {
+	if len(key) > 0 {
+		keyHash := sha256.Sum256([]byte(key))
+		c, err := aes.NewCipher(keyHash[:])
+		if err != nil {
+			return fmt.Sprintf("creating cipher err: %v", err), err
+		}
+		gcm, err := cipher.NewGCM(c)
+		if err != nil {
+			return fmt.Sprintf("creating gcm err: %v", err), err
+		}
+
+		textAsBytes, err := hex.DecodeString(text)
+		if err != nil {
+			return fmt.Sprintf("decoding err: %v", err), err
+		}
+		nonce, ciphertext := textAsBytes[:gcm.NonceSize()], textAsBytes[gcm.NonceSize():]
+		plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+		if err != nil {
+			return fmt.Sprintf("decrypting err: %v", err), err
+		}
+		return string(plaintext), nil
+	} else {
+		return "encryption key cannot be empty", fmt.Errorf("encryption key cannot be empty")
+	}
 }
