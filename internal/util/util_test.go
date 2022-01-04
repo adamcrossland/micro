@@ -53,3 +53,15 @@ func TestEncryptWithEmptyKey(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, "encryption key cannot be empty", result)
 }
+
+func TestDecryptWithEmptyText(t *testing.T) {
+	result, err := Decrypt("", "anactualkey")
+	assert.Equal(t, 0, len(result))
+	assert.Nil(t, err)
+}
+
+func TestDecryptWithEmptyKey(t *testing.T) {
+	result, err := Decrypt("actual text", "")
+	assert.Equal(t, "encryption key cannot be empty", result)
+	assert.NotNil(t, err)
+}
