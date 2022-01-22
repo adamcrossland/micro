@@ -500,7 +500,7 @@ func Unzip(src, dest string) error {
 }
 
 func Encrypt(text, key string) (string, error) {
-	if len(key) > 0 {
+	if len(key) == 0 {
 		return "encryption key cannot be empty", fmt.Errorf("encryption key cannot be empty")
 	}
 
